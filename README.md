@@ -1,2 +1,3 @@
 # Microscopy-Data-Management-System
 Это демо-архитектура системы для хранения, каталогизации и обработки изображений микроскопии. Проект включает:  объектное хранилище (MinIO, S3 API);  реляционную базу данных (PostgreSQL);  ETL-пайплайн на Python;  полное описание схемы данных и патентного стиля архитектурного решения.
+This is a demo architecture of a system for storing, cataloging, and processing microscopy images. The project includes:object storage (MinIO, S3 API); relational database (PostgreSQL); ETL pipeline in Python; a complete description of the data schema and the patent style of the architectural solution.
