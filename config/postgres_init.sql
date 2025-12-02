@@ -14,8 +14,14 @@ CREATE TABLE devices(
 );
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
-    login VARCHAR(15) NOT NULL password VARCHAR(15) NOT NULL first_name VARCHAR(100) last_name VARCHAR(100) role VARCHAR(20) created_at TIMESTAMP DEFAULT NOW()
-) CREATE TABLE experiments (
+    login VARCHAR(15) NOT NULL,
+    password VARCHAR(15) NOT NULL,
+    first_name VARCHAR(100),
+    last_name VARCHAR(100),
+    role VARCHAR(20),
+    created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE TABLE experiments (
     id SERIAL PRIMARY KEY,
     name VARCHAR(200),
     description TEXT,
@@ -34,21 +40,21 @@ CREATE TABLE structures (
 );
 CREATE TABLE structures_meninges (
     id SERIAL PRIMARY KEY,
-    structure_id INTEGER REFERENCES structures(id),
+    structures_id INTEGER REFERENCES structures(id),
     superior_sagittal_sinus BOOLEAN DEFAULT FALSE,
     confluence_of_sinuses BOOLEAN DEFAULT FALSE,
     transverse_sinus BOOLEAN DEFAULT FALSE
 );
 CREATE TABLE structures_brain (
     id SERIAL PRIMARY KEY,
-    structure_id INTEGER REFERENCES structures(id),
+    structures_id INTEGER REFERENCES structures(id),
     cortex BOOLEAN DEFAULT FALSE,
     thalamus BOOLEAN DEFAULT FALSE,
     hypothalamus BOOLEAN DEFAULT FALSE
 );
 CREATE TABLE ihc (
     id SERIAL PRIMARY KEY,
-    structure_brain_id INTEGER REFERENCES structures_brain(id),
+    structures_brain_id INTEGER REFERENCES structures_brain(id),
     dapi BOOLEAN DEFAULT FALSE,
     sma BOOLEAN DEFAULT FALSE,
     lyve1 BOOLEAN DEFAULT FALSE,
