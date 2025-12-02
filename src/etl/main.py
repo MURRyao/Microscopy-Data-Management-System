@@ -35,6 +35,13 @@ class ETLGUI:
         self.folder_var = tk.StringVar()
         tk.Entry(root, textvariable=self.folder_var, width=40).pack(pady=5)
 
+        tk.Label(
+            root, text="Введите название эксперимента", font=("Arial", 12, "bold")
+        ).pack(pady=5)
+
+        self.name.var = tk.StringVar()
+        tk.Entry(root, textvariable=self.name_var, width=40).pack(pady=5)
+
         # ----------------------------
         # Галочки структуры
         # ----------------------------
@@ -98,6 +105,7 @@ class ETLGUI:
                 ("TIFF files", "*.tif *.tiff"),
                 ("Images", "*.png *.jpg *.jpeg"),
                 ("All files", "*.*"),
+                ("Microscope files", "*nd2*"),
             ],
         )
         if s3_path:
@@ -121,6 +129,7 @@ class ETLGUI:
             metadata = {
                 "mouse_id": 1,  # временно статично — можно сделать выбор мыши
                 "experiment_id": 1,  # тоже можно сделать выпадающий список
+                "name": self.name_var.get().strip(),
                 "meninges": self.flags["meninges"].get(),
                 "brain": self.flags["brain"].get(),
                 "sss": self.flags["sss"].get(),
