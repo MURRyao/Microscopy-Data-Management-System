@@ -7,10 +7,10 @@ from tkinter import messagebox
 
 
 class ETlModel:
-    def run_etl(self):
+    def run_etl(self, s3_path, folder):
         try:
-            s3_path = self.file_path_var.get().strip()
-            folder = self.folder_var.get().strip()
+            s3_path = s3_path.strip()
+            folder = folder.strip()
 
             if not s3_path:
                 messagebox.showerror("Ошибка", "Выберите файл!")

@@ -1,6 +1,6 @@
-import psycopg2
+import psycopg
 import os
-from psycopg2 import sql
+from psycopg import sql
 
 # Параметры подключения
 DB_HOST = "localhost"        
@@ -19,7 +19,7 @@ with open(SQL_FILE, "r") as f:
     sql = f.read()
 
 # Подключение к Postgres
-conn = psycopg2.connect(
+conn = psycopg.connect(
     host=DB_HOST,
     database=DB_NAME,
     user=DB_USER,

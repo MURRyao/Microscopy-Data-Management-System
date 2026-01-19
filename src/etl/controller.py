@@ -8,27 +8,27 @@ class ETLController:
         self.view = ETLView(root, self)
 
     def choose_file(self):
-        s3_path = self.view.choose_file_dialog()
+        s3_path = self.view.choose_file()
         if s3_path:
             self.view.file_path_var.set(s3_path)
 
     def run_etl(self):
         try:
-            s3_path = self.view.get_file_path()
-            folder = self.view.get_folder()
-            name = self.view.get_name()
+            s3_path = self.view.file_path_var.get()
+            folder = self.view.folder_var.get()
+            name = self.view.name_var.get()
             metadata = {
                 "mouse_id": 1,
                 "experiment_id": 1,
-                "name": self.name_var.get().strip(),
-                "meninges": self.flags["meninges"].get(),
-                "brain": self.flags["brain"].get(),
-                "sss": self.flags["sss"].get(),
-                "transverse_sinus": self.flags["transverse_sinus"].get(),
-                "cortex": self.flags["cortex"].get(),
-                "thalamus": self.flags["thalamus"].get(),
+                "name": name.strip(),
+                "meninges": self.view.flags["meninges"].get(),
+                "brain": self.view.flags["brain"].get(),
+                "sss": self.view.flags["sss"].get(),
+                "transverse_sinus": self.view.flags["transverse_sinus"].get(),
+                "cortex": self.view.flags["cortex"].get(),
+                "thalamus": self.view.flags["thalamus"].get(),
             }
-            result = self.model.run_etl(s3_path, folder, metadata)
+            result = self.model.run_etl(self, s3_path, folder)
             self.view.show_success(result)
         except Exception as e:
             self.view.show_error(str(e))

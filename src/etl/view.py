@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import filedialog, messagebox
 
 
 class ETLView:
@@ -83,7 +83,7 @@ class ETLView:
             text="Загрузить в систему",
             command=self.controller.run_etl,
             bg="#4CAF50",
-            fg="white",
+            fg="black",
             font=("Arial", 12, "bold"),
         ).pack(pady=20)
 
@@ -99,3 +99,8 @@ class ETLView:
         )
         if s3_path:
             self.file_path_var.set(s3_path)
+    def show_error(self, message: str):
+        messagebox.showerror("Ошибка", message)
+
+    def show_success(self, message: str):
+        messagebox.showinfo("Успех", message)
