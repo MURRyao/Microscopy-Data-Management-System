@@ -24,6 +24,7 @@ def insert_metadata(conn_string, metadata, object_path):
     sql_mice = """
     INSERT INTO mice (user_id, genetic_line, sex, age_weeks, device_id)
     VALUES (%s, %s, %s, %s, %s)
+    RETURNING id
     """
     cursor.execute(
         sql_mice,
@@ -40,25 +41,27 @@ def insert_metadata(conn_string, metadata, object_path):
     sql_experiments = """
     INSERT INTO experiments (name)
     VALUES (%s)
+    RETURNING id
     """
     cursor.execute(sql_experiments, (metadata["name"],))
-    experiments_id = cursor.fetchone()[0]
+    experiment_id = cursor.fetchone()[0]
 
     sql_mice_experiments = """
-    INSERT INTO mice_experiments (mouse_id, experiments_id)
+    INSERT INTO mice_experiments (mouse_id, experiment_id)
     VALUES (%s, %s)
     """
     cursor.execute(
         sql_mice_experiments,
         (
             mouse_id,
-            experiments_id,
+            experiment_id,
         ),
     )
 
     sql_structures = """
     INSERT INTO structures (mouse_id, meninges, brain)
     VALUES (%s, %s, %s)
+    RETURNING id
     """
     cursor.execute(
         sql_structures,
@@ -69,31 +72,33 @@ def insert_metadata(conn_string, metadata, object_path):
         ),
     )
 
-    structures_id = cursor.fetchone()[0]
+    structure_id = cursor.fetchone()[0]
 
     sql_structures_meninges = """
-    INSERT INTO structures_meninges (structure_id, superior_saggital_sinus, confluense_of_sinuses, transverse_sinus)
+    INSERT INTO structures_meninges (structure_id, superior_sagittal_sinus, confluence_of_sinuses, transverse_sinus)
     VALUES (%s, %s, %s, %s)
+    RETURNING id
     """
     cursor.execute(
         sql_structures_meninges,
         (
-            structures_id,
-            metadata["superior_saggital_sinus"],
-            metadata["confluense_od_sinuses"],
+            structure_id,
+            metadata["superior_sagittal_sinus"],
+            metadata["confluence_of_sinuses"],
             metadata["transverse_sinus"],
         ),
     )
     structures_meninges_id = cursor.fetchone()[0]
 
     sql_structures_brain = """
-    INSERT INTO structures_brain (structures_id, cortex, thalamus, hypothalamus)
+    INSERT INTO structures_brain (structure_id, cortex, thalamus, hypothalamus)
     VALUES (%s, %s, %s, %s)
+    RETURNING id
     """
     cursor.execute(
         sql_structures_brain,
         (
-            structures_id,
+            structure_id,
             metadata["cortex"],
             metadata["thalamus"],
             metadata["hypothalamus"],

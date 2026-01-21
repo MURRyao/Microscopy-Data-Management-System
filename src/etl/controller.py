@@ -4,7 +4,7 @@ from view import ETLView
 
 class ETLController:
     def __init__(self, root):
-        self.model = ETlModel
+        self.model = ETlModel()
         self.view = ETLView(root, self)
 
     def choose_file(self):
@@ -18,17 +18,23 @@ class ETLController:
             folder = self.view.folder_var.get()
             name = self.view.name_var.get()
             metadata = {
-                "mouse_id": 1,
-                "experiment_id": 1,
+                "user_id": 2,
+                "genetic_line": "C57BL/6",
+                "sex": "male",
+                "age_weeks": 12,
+                "device_id": 1,
                 "name": name.strip(),
                 "meninges": self.view.flags["meninges"].get(),
                 "brain": self.view.flags["brain"].get(),
-                "sss": self.view.flags["sss"].get(),
+                "superior_sagittal_sinus": self.view.flags["sss"].get(),
+                "confluence_of_sinuses": False,
                 "transverse_sinus": self.view.flags["transverse_sinus"].get(),
                 "cortex": self.view.flags["cortex"].get(),
                 "thalamus": self.view.flags["thalamus"].get(),
+                "hypothalamus": False,
+                "experiment_id": 2,
             }
-            result = self.model.run_etl(self, s3_path, folder)
-            self.view.show_success(result)
+
+            result = self.model.run_etl(s3_path, folder, metadata)
         except Exception as e:
             self.view.show_error(str(e))
