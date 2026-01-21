@@ -7,7 +7,7 @@ from tkinter import messagebox
 
 
 class ETlModel:
-    def run_etl(self):
+    def run_etl(self, s3_path: str, folder: str, metadata: dict):
         try:
             s3_path = self.file_path_var.get().strip()
             folder = self.folder_var.get().strip()
@@ -24,11 +24,11 @@ class ETlModel:
             path = extract_image(s3_path)
             object_path = validate_and_prepare(path, folder)
             load_to_minio(path, object_path)
-            # insert_metadata(
-            # "dbname=microscopy_db user=microscopy password=microscopy host=localhost",
-            # metadata,
-            # object_path,
-            # )
+            insert_metadata(
+                "dbname=microscopy_db user=microscopy password=microscopy host=localhost",
+                metadata,
+                object_path,
+            )
 
             messagebox.showinfo("Успех", "Файл и метаданные успешно загружены!")
 
