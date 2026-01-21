@@ -1,5 +1,5 @@
 from minio import Minio
-import psycopg2
+import psycopg
 
 
 def load_to_minio(local_path, object_path):
@@ -18,7 +18,7 @@ def load_to_minio(local_path, object_path):
 
 
 def insert_metadata(conn_string, metadata, object_path):
-    conn = psycopg2.connect(conn_string)
+    conn = psycopg.connect(conn_string)
     cursor = conn.cursor()
 
     sql_mice = """

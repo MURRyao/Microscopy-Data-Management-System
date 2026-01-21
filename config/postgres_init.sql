@@ -1,6 +1,6 @@
 CREATE TABLE mice (
     id SERIAL PRIMARY KEY,
-    user_id integer REFERENCES users(id),
+    user_id INTEGER REFERENCES users(id),
     genetic_line VARCHAR(100) NOT NULL,
     sex VARCHAR(10) NOT NULL,
     age_weeks INTEGER NOT NULL,
@@ -34,7 +34,7 @@ CREATE TABLE mice_experiments (
 );
 CREATE TABLE structures (
     id SERIAL PRIMARY KEY,
-    mouse_id integer REFERENCES mice(id),
+    mouse_id INTEGER REFERENCES mice(id),
     meninges BOOLEAN DEFAULT FALSE,
     brain BOOLEAN DEFAULT FALSE
 );
