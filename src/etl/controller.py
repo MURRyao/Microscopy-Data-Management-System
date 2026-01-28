@@ -17,10 +17,13 @@ class ETLController:
             s3_path = self.view.file_path_var.get()
             folder = self.view.folder_var.get()
             name = self.view.name_var.get()
+            genetic_line = self.genetic_line.get()
+            sex = self.sex.get()
+            age = self.age_weeks.get()
             metadata = {
                 "user_id": 2,
-                "genetic_line": "C57BL/6",
-                "sex": "male",
+                "genetic_line": genetic_line.strip(),
+                "sex": sex.strip,
                 "age_weeks": 12,
                 "device_id": 1,
                 "name": name.strip(),

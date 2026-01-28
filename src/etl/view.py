@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, ttk
 
 
 class ETLView:
@@ -7,10 +7,10 @@ class ETLView:
         self.root = root
         self.controller = controller
         self.root.title("Microscopy ETL Uploader")
-        self.root.geometry("500x550")
+        self.root.geometry("600x700")
 
         # Выбор файла
-        tk.Label(root, text="1. Выберите изображение", font=("Arial", 12, "bold")).pack(
+        tk.Label(root, text="Выберите изображение", font=("Arial", 12, "bold")).pack(
             pady=5
         )
 
@@ -20,10 +20,35 @@ class ETLView:
         tk.Button(root, text="Выбрать файл", command=self.controller.choose_file).pack(
             pady=5
         )
+        #Указание генетической линии
+        tk.Label(
+            root,
+            text="Укажите генетическую линию",
+            font=("Arial", 12, "bold")
+        ).pack(pady=5)
+
+        # известные значения
+        genetic_lines = [
+            "C57BL/6",
+            "BALB/c",
+            "DBA/2",
+            "FVB/N",
+            "129/Sv"
+]
+
+        self.genetic_line = tk.StringVar()
+        combobox = ttk.Combobox(
+            root,
+            textvariable=self.genetic_line,
+            values=genetic_lines,
+             width=47,
+            state="readonly"
+)
+        combobox.pack(pady=5)
 
         # Указание папки (эксперимента)
         tk.Label(
-            root, text="2. Название папки (эксперимента)", font=("Arial", 12, "bold")
+            root, text="Название папки (эксперимента)", font=("Arial", 12, "bold")
         ).pack(pady=5)
 
         self.folder_var = tk.StringVar()
@@ -37,7 +62,7 @@ class ETLView:
         tk.Entry(root, textvariable=self.name_var, width=40).pack(pady=5)
 
         # Галочки структуры
-        tk.Label(root, text="3. Отметьте структуры", font=("Arial", 12, "bold")).pack(
+        tk.Label(root, text="Отметьте структуры", font=("Arial", 12, "bold")).pack(
             pady=10
         )
 
@@ -76,6 +101,47 @@ class ETLView:
         tk.Checkbutton(
             root, text="Таламус (thalamus)", variable=self.flags["thalamus"]
         ).pack(anchor="w", padx=40)
+        # общий контейнер для строки
+        row_frame = tk.Frame(root)
+        row_frame.pack(pady=10)
+
+        # ---------- ЛЕВАЯ КОЛОНКА: ПОЛ ----------
+        sex_frame = tk.Frame(row_frame)
+        sex_frame.pack(side=tk.LEFT, padx=20)
+
+        tk.Label(
+            sex_frame,
+            text="Укажите пол",
+            font=("Arial", 12, "bold")
+        ).pack(anchor="w")
+
+        sexes = ["male", "female"]
+
+        self.sex = tk.StringVar()
+        ttk.Combobox(
+            sex_frame,
+            textvariable=self.sex,
+            values=sexes,
+            width=15,
+            state="readonly"
+        ).pack(pady=5)
+
+        # ---------- ПРАВАЯ КОЛОНКА: ВОЗРАСТ ----------
+        age_frame = tk.Frame(row_frame)
+        age_frame.pack(side=tk.LEFT, padx=20)
+
+        tk.Label(
+            age_frame,
+            text="Укажите возраст (в неделях)",
+            font=("Arial", 12, "bold")
+        ).pack(anchor="w")
+
+        self.age_weeks = tk.StringVar()
+        tk.Entry(
+            age_frame,
+            textvariable=self.age_weeks,
+            width=15
+        ).pack(pady=5)
 
         # Кнопка загрузки
         tk.Button(
