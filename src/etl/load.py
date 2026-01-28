@@ -75,7 +75,7 @@ def insert_metadata(conn_string, metadata, object_path):
     structure_id = cursor.fetchone()[0]
 
     sql_structures_meninges = """
-    INSERT INTO structures_meninges (structure_id, superior_sagittal_sinus, confluence_of_sinuses, transverse_sinus)
+    INSERT INTO structures_meninges (structures_id, superior_sagittal_sinus, confluence_of_sinuses, transverse_sinus)
     VALUES (%s, %s, %s, %s)
     RETURNING id
     """
@@ -91,7 +91,7 @@ def insert_metadata(conn_string, metadata, object_path):
     structures_meninges_id = cursor.fetchone()[0]
 
     sql_structures_brain = """
-    INSERT INTO structures_brain (structure_id, cortex, thalamus, hypothalamus)
+    INSERT INTO structures_brain (structures_id, cortex, thalamus, hypothalamus)
     VALUES (%s, %s, %s, %s)
     RETURNING id
     """
