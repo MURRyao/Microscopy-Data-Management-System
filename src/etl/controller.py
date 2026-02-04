@@ -15,16 +15,15 @@ class ETLController:
     def run_etl(self):
         try:
             s3_path = self.view.file_path_var.get()
-            folder = self.view.folder_var.get()
             name = self.view.name_var.get()
-            genetic_line = self.genetic_line.get()
-            sex = self.sex.get()
-            age = self.age_weeks.get()
+            genetic_line = self.view.genetic_line.get()
+            sex = self.view.sex.get()
+            age = self.view.age_weeks.get()
             metadata = {
-                "user_id": 2,
+                "user_id": 1,
                 "genetic_line": genetic_line.strip(),
-                "sex": sex.strip,
-                "age_weeks": 12,
+                "sex": sex.strip(),
+                "age_weeks": age.strip(),
                 "device_id": 1,
                 "name": name.strip(),
                 "meninges": self.view.flags["meninges"].get(),
@@ -38,6 +37,6 @@ class ETLController:
                 "experiment_id": 2,
             }
 
-            result = self.model.run_etl(s3_path, folder, metadata)
+            result = self.model.run_etl(s3_path, metadata)
         except Exception as e:
             self.view.show_error(str(e))

@@ -1,33 +1,32 @@
 from pathlib import Path
 from extract import extract_image
-from transform import validate_and_prepare
 from load import load_to_minio, insert_metadata
 import tkinter as tk
 from tkinter import messagebox
 
 
 class ETlModel:
-    def run_etl(self, s3_path: str, folder: str, metadata: dict):
+    def run_etl(self, s3_path: str, metadata: dict):
         try:
             s3_path = s3_path.strip()
-            folder = folder.strip()
 
             if not s3_path:
                 messagebox.showerror("Ошибка", "Выберите файл!")
                 return
 
-            if not folder:
-                messagebox.showerror("Ошибка", "Введите название папки!")
-                return
+            # Extract
+            local_path = extract_image(s3_path)  # возвращает локальный путь
+            print("DEBUG local_path:", local_path)
 
-            # ETL
-            path = extract_image(s3_path)
-            object_path = validate_and_prepare(path, folder)
-            load_to_minio(path, object_path)
+            # Load
+            s3_object_path = load_to_minio(local_path)
+            print("DEBUG s3_object_path:", s3_object_path)
+
+            # Insert metadata в БД
             insert_metadata(
                 "dbname=microscopy_db user=microscopy password=microscopy host=localhost",
                 metadata,
-                object_path,
+                s3_object_path,  # путь к файлу в S3
             )
 
             messagebox.showinfo("Успех", "Файл и метаданные успешно загружены!")

@@ -46,13 +46,6 @@ class ETLView:
 )
         combobox.pack(pady=5)
 
-        # Указание папки (эксперимента)
-        tk.Label(
-            root, text="Название папки (эксперимента)", font=("Arial", 12, "bold")
-        ).pack(pady=5)
-
-        self.folder_var = tk.StringVar()
-        tk.Entry(root, textvariable=self.folder_var, width=40).pack(pady=5)
 
         tk.Label(
             root, text="Введите название эксперимента", font=("Arial", 12, "bold")
