@@ -1,0 +1,40 @@
+[2026-02-05T11:55:59.420+0000] {taskinstance.py:1979} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: microscopy_cleanup_n_copy.cleanup_minio_storage manual__2026-02-05T11:55:56.465137+00:00 [queued]>
+[2026-02-05T11:55:59.422+0000] {taskinstance.py:1979} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: microscopy_cleanup_n_copy.cleanup_minio_storage manual__2026-02-05T11:55:56.465137+00:00 [queued]>
+[2026-02-05T11:55:59.422+0000] {taskinstance.py:2193} INFO - Starting attempt 1 of 1
+[2026-02-05T11:55:59.427+0000] {taskinstance.py:2217} INFO - Executing <Task(PythonOperator): cleanup_minio_storage> on 2026-02-05 11:55:56.465137+00:00
+[2026-02-05T11:55:59.429+0000] {standard_task_runner.py:60} INFO - Started process 545 to run task
+[2026-02-05T11:55:59.430+0000] {standard_task_runner.py:87} INFO - Running: ['airflow', 'tasks', 'run', '***_cleanup_n_copy', 'cleanup_minio_storage', 'manual__2026-02-05T11:55:56.465137+00:00', '--job-id', '8', '--raw', '--subdir', 'DAGS_FOLDER/***_clean_n_move.py', '--cfg-path', '/tmp/tmpd4bg_b42']
+[2026-02-05T11:55:59.431+0000] {standard_task_runner.py:88} INFO - Job 8: Subtask cleanup_minio_storage
+[2026-02-05T11:55:59.450+0000] {task_command.py:423} INFO - Running <TaskInstance: microscopy_cleanup_n_copy.cleanup_minio_storage manual__2026-02-05T11:55:56.465137+00:00 [running]> on host aaf8a9796a42
+[2026-02-05T11:55:59.481+0000] {taskinstance.py:2513} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='airflow' AIRFLOW_CTX_DAG_ID='***_cleanup_n_copy' AIRFLOW_CTX_TASK_ID='cleanup_minio_storage' AIRFLOW_CTX_EXECUTION_DATE='2026-02-05T11:55:56.465137+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='manual__2026-02-05T11:55:56.465137+00:00'
+[2026-02-05T11:55:59.485+0000] {base.py:83} INFO - Using connection ID '***_postgres' for task execution.
+[2026-02-05T11:55:59.487+0000] {sql.py:457} INFO - Running statement: 
+        SELECT i.s3_path
+        FROM images i
+        LEFT JOIN structures s
+        ON i.structure_id = s.id
+        WHERE meninges = FALSE
+            OR brain = FALSE
+    , parameters: None
+[2026-02-05T11:55:59.487+0000] {sql.py:466} INFO - Rows affected: 1
+[2026-02-05T11:55:59.489+0000] {logging_mixin.py:188} WARNING - /home/airflow/.local/lib/python3.8/site-packages/airflow/providers/common/sql/hooks/sql.py:407 AirflowProviderDeprecationWarning: Call to deprecated method _make_common_data_structure. (The `_make_serializable` method is deprecated and support will be removed in a future version of the common.sql provider. Please update the DbApiHook's provider to a version based on common.sql >= 1.9.1.)
+[2026-02-05T11:55:59.492+0000] {base.py:83} INFO - Using connection ID '***_postgres' for task execution.
+[2026-02-05T11:55:59.494+0000] {sql.py:457} INFO - Running statement: 
+        SELECT i.s3_path
+        FROM images i
+        LEFT JOIN structures s
+        ON i.structure_id = s.id
+        WHERE meninges = TRUE
+            OR brain = TRUE
+    , parameters: None
+[2026-02-05T11:55:59.494+0000] {sql.py:466} INFO - Rows affected: 1
+[2026-02-05T11:55:59.495+0000] {logging_mixin.py:188} INFO - Записей без флагов: 1
+[2026-02-05T11:55:59.495+0000] {logging_mixin.py:188} INFO - Записей с флагами: 1
+[2026-02-05T11:55:59.495+0000] {logging_mixin.py:188} INFO - Удаление: testbucket/staging/blue-tiff-no-comp — копия.tif
+[2026-02-05T11:55:59.498+0000] {logging_mixin.py:188} INFO - Успешно удалено: testbucket/staging/blue-tiff-no-comp — копия.tif
+[2026-02-05T11:55:59.498+0000] {logging_mixin.py:188} INFO - Копирование: testbucket/staging/blue-tiff-no-comp.tif -> core/staging/blue-tiff-no-comp.tif
+[2026-02-05T11:55:59.498+0000] {logging_mixin.py:188} INFO - Ошибка при обработке testbucket/staging/blue-tiff-no-comp.tif: source must be CopySource type
+[2026-02-05T11:55:59.498+0000] {python.py:202} INFO - Done. Returned value was: None
+[2026-02-05T11:55:59.503+0000] {taskinstance.py:1149} INFO - Marking task as SUCCESS. dag_id=***_cleanup_n_copy, task_id=cleanup_minio_storage, execution_date=20260205T115556, start_date=20260205T115559, end_date=20260205T115559
+[2026-02-05T11:55:59.535+0000] {local_task_job_runner.py:234} INFO - Task exited with return code 0
+[2026-02-05T11:55:59.541+0000] {taskinstance.py:3312} INFO - 0 downstream tasks scheduled from follow-on schedule check

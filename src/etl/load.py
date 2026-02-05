@@ -104,14 +104,15 @@ def insert_metadata(conn_string, metadata, s3_path: str):
 
     # Вставка пути к файлу в S3
     sql_images = """
-    INSERT INTO images (mouse_id, experiment_id, s3_path)
-    VALUES (%s, %s, %s)
+    INSERT INTO images (mouse_id, experiment_id, structure_id, s3_path)
+    VALUES (%s, %s, %s, %s)
     """
     cursor.execute(
         sql_images, 
         (
             mouse_id, 
-            experiment_id, 
+            experiment_id,
+            structure_id, 
             s3_path,
             )
             )
