@@ -3,3 +3,6 @@ config/config
 __pycache__/
 *.pyc
 .conda
+CODE_REVIEW.md
+DB_SCHEMA_REVIEW.md
+UI_UX_IDEAS.md
