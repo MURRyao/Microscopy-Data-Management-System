@@ -1,165 +1,336 @@
-import tkinter as tk
-from tkinter import filedialog, messagebox, ttk
+import io
+import logging
+from pathlib import Path
 
-
-class ETLView:
-    def __init__(self, root, controller):
-        self.root = root
-        self.controller = controller
-        self.root.title("Microscopy ETL Uploader")
-        self.root.geometry("600x700")
-
-        # Выбор файла
-        tk.Label(root, text="Выберите изображение", font=("Arial", 12, "bold")).pack(
-            pady=5
-        )
-
-        self.file_path_var = tk.StringVar()
-        tk.Entry(root, textvariable=self.file_path_var, width=50).pack(pady=5)
-
-        tk.Button(root, text="Выбрать файл", command=self.controller.choose_file).pack(
-            pady=5
-        )
-        #Указание генетической линии
-        tk.Label(
-            root,
-            text="Укажите генетическую линию",
-            font=("Arial", 12, "bold")
-        ).pack(pady=5)
-
-        # известные значения
-        genetic_lines = [
-            "C57BL/6",
-            "BALB/c",
-            "DBA/2",
-            "FVB/N",
-            "129/Sv"
-]
-
-        self.genetic_line = tk.StringVar()
-        combobox = ttk.Combobox(
-            root,
-            textvariable=self.genetic_line,
-            values=genetic_lines,
-             width=47,
-            state="readonly"
+from PIL import Image as PILImage
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QFont, QPixmap
+from PyQt5.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QFileDialog,
+    QFrame,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMainWindow,
+    QMessageBox,
+    QPushButton,
+    QSizePolicy,
+    QSplitter,
+    QVBoxLayout,
+    QWidget,
 )
-        combobox.pack(pady=5)
+
+logger = logging.getLogger(__name__)
+
+_PREVIEW_PX = 400
+_GENETIC_LINES = ["C57BL/6", "BALB/c", "DBA/2", "FVB/N", "129/Sv"]
+_PREVIEWABLE = {".tif", ".tiff", ".png", ".jpg", ".jpeg"}
 
 
-        tk.Label(
-            root, text="Введите название эксперимента", font=("Arial", 12, "bold")
-        ).pack(pady=5)
+# ---------------------------------------------------------------------------
+# Thin wrappers so controller.py keeps its .get() / .set() interface
+# ---------------------------------------------------------------------------
 
-        self.name_var = tk.StringVar()
-        tk.Entry(root, textvariable=self.name_var, width=40).pack(pady=5)
+class _StrVar:
+    def __init__(self, widget):
+        self._w = widget
 
-        # Галочки структуры
-        tk.Label(root, text="Отметьте структуры", font=("Arial", 12, "bold")).pack(
-            pady=10
+    def get(self) -> str:
+        if hasattr(self._w, "currentText"):
+            return self._w.currentText()
+        return self._w.text()
+
+    def set(self, value: str):
+        if hasattr(self._w, "setText"):
+            self._w.setText(value)
+
+
+class _BoolVar:
+    def __init__(self, checkbox: QCheckBox):
+        self._cb = checkbox
+
+    def get(self) -> bool:
+        return self._cb.isChecked()
+
+
+# ---------------------------------------------------------------------------
+# Main window
+# ---------------------------------------------------------------------------
+
+class ETLView(QMainWindow):
+    def __init__(self, controller):
+        super().__init__()
+        self.controller = controller
+        self.setWindowTitle("Microscopy ETL Uploader")
+        self.setMinimumSize(960, 680)
+        self._build_ui()
+        self._expose_accessors()
+
+    # ------------------------------------------------------------------ build
+
+    def _build_ui(self):
+        central = QWidget()
+        self.setCentralWidget(central)
+        root = QVBoxLayout(central)
+        root.setSpacing(12)
+        root.setContentsMargins(16, 16, 16, 16)
+
+        # Title
+        title = QLabel("Microscopy ETL Uploader")
+        title_font = QFont()
+        title_font.setPointSize(16)
+        title_font.setBold(True)
+        title.setFont(title_font)
+        title.setAlignment(Qt.AlignCenter)
+        root.addWidget(title)
+
+        # Horizontal splitter: form left, preview right
+        splitter = QSplitter(Qt.Horizontal)
+        splitter.setChildrenCollapsible(False)
+        root.addWidget(splitter, stretch=1)
+
+        splitter.addWidget(self._build_form())
+        splitter.addWidget(self._build_preview_panel())
+        splitter.setSizes([560, _PREVIEW_PX + 40])
+
+        # Upload button
+        upload_btn = QPushButton("Загрузить в систему")
+        upload_btn.setFixedHeight(44)
+        btn_font = QFont()
+        btn_font.setPointSize(11)
+        btn_font.setBold(True)
+        upload_btn.setFont(btn_font)
+        upload_btn.setStyleSheet(
+            "QPushButton          { background-color: #4CAF50; color: white;"
+            "                       border-radius: 6px; }"
+            "QPushButton:hover    { background-color: #45a049; }"
+            "QPushButton:disabled { background-color: #aaa; }"
         )
+        upload_btn.clicked.connect(self.controller.run_etl)
+        root.addWidget(upload_btn)
+        self._upload_btn = upload_btn
 
-        self.flags = {
-            "meninges": tk.BooleanVar(),
-            "brain": tk.BooleanVar(),
-            "sss": tk.BooleanVar(),
-            "transverse_sinus": tk.BooleanVar(),
-            "cortex": tk.BooleanVar(),
-            "thalamus": tk.BooleanVar(),
-        }
+    def _build_form(self) -> QWidget:
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setSpacing(10)
 
-        tk.Checkbutton(
-            root, text="Оболочки (meninges)", variable=self.flags["meninges"]
-        ).pack(anchor="w", padx=30)
-        tk.Checkbutton(
-            root, text="Головной мозг (brain)", variable=self.flags["brain"]
-        ).pack(anchor="w", padx=30)
+        # ── File selection ────────────────────────────────────────────────
+        file_group = QGroupBox("Изображение")
+        file_vbox = QVBoxLayout(file_group)
+        file_row = QHBoxLayout()
 
-        tk.Label(root, text="Уточнение оболочек:", font=("Arial", 10, "italic")).pack(
-            anchor="w", padx=30
+        self._file_edit = QLineEdit()
+        self._file_edit.setPlaceholderText("Путь к файлу...")
+        self._file_edit.setReadOnly(True)
+
+        choose_btn = QPushButton("Выбрать файл")
+        choose_btn.setFixedWidth(130)
+        choose_btn.clicked.connect(self._on_choose_file)
+
+        file_row.addWidget(self._file_edit)
+        file_row.addWidget(choose_btn)
+        file_vbox.addLayout(file_row)
+        layout.addWidget(file_group)
+
+        # ── Metadata ──────────────────────────────────────────────────────
+        meta_group = QGroupBox("Метаданные")
+        meta_layout = QVBoxLayout(meta_group)
+
+        meta_layout.addWidget(QLabel("Название эксперимента:"))
+        self._name_edit = QLineEdit()
+        meta_layout.addWidget(self._name_edit)
+
+        meta_layout.addWidget(QLabel("Генетическая линия:"))
+        self._genetic_combo = QComboBox()
+        self._genetic_combo.addItems(_GENETIC_LINES)
+        meta_layout.addWidget(self._genetic_combo)
+
+        sex_age_row = QHBoxLayout()
+
+        sex_col = QVBoxLayout()
+        sex_col.addWidget(QLabel("Пол:"))
+        self._sex_combo = QComboBox()
+        self._sex_combo.addItems(["male", "female"])
+        sex_col.addWidget(self._sex_combo)
+
+        age_col = QVBoxLayout()
+        age_col.addWidget(QLabel("Возраст (нед.):"))
+        self._age_edit = QLineEdit()
+        self._age_edit.setPlaceholderText("напр. 12")
+        age_col.addWidget(self._age_edit)
+
+        sex_age_row.addLayout(sex_col)
+        sex_age_row.addLayout(age_col)
+        meta_layout.addLayout(sex_age_row)
+        layout.addWidget(meta_group)
+
+        # ── Structures ────────────────────────────────────────────────────
+        struct_group = QGroupBox("Структуры")
+        struct_layout = QVBoxLayout(struct_group)
+
+        top_row = QHBoxLayout()
+        self._cb_meninges = QCheckBox("Оболочки (meninges)")
+        self._cb_brain = QCheckBox("Головной мозг (brain)")
+        top_row.addWidget(self._cb_meninges)
+        top_row.addWidget(self._cb_brain)
+        top_row.addStretch()
+        struct_layout.addLayout(top_row)
+
+        men_group = QGroupBox("Уточнение оболочек")
+        men_row = QHBoxLayout(men_group)
+        self._cb_sss = QCheckBox("Верхний сагиттальный синус (SSS)")
+        self._cb_confluence = QCheckBox("Слияние синусов")
+        self._cb_transverse = QCheckBox("Поперечный синус")
+        for cb in (self._cb_sss, self._cb_confluence, self._cb_transverse):
+            men_row.addWidget(cb)
+        men_row.addStretch()
+        struct_layout.addWidget(men_group)
+
+        brain_group = QGroupBox("Уточнение мозга")
+        brain_row = QHBoxLayout(brain_group)
+        self._cb_cortex = QCheckBox("Кора (cortex)")
+        self._cb_thalamus = QCheckBox("Таламус")
+        self._cb_hypothalamus = QCheckBox("Гипоталамус")
+        for cb in (self._cb_cortex, self._cb_thalamus, self._cb_hypothalamus):
+            brain_row.addWidget(cb)
+        brain_row.addStretch()
+        struct_layout.addWidget(brain_group)
+
+        layout.addWidget(struct_group)
+        layout.addStretch()
+        return widget
+
+    def _build_preview_panel(self) -> QWidget:
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+
+        header = QLabel("Предпросмотр")
+        header_font = QFont()
+        header_font.setBold(True)
+        header.setFont(header_font)
+        header.setAlignment(Qt.AlignCenter)
+        layout.addWidget(header)
+
+        self._preview_label = QLabel("Файл не выбран")
+        self._preview_label.setAlignment(Qt.AlignCenter)
+        self._preview_label.setMinimumSize(_PREVIEW_PX, _PREVIEW_PX)
+        self._preview_label.setFrameShape(QFrame.StyledPanel)
+        self._preview_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self._preview_label.setWordWrap(True)
+        layout.addWidget(self._preview_label, stretch=1)
+
+        # File info shown below the preview image
+        self._info_label = QLabel()
+        self._info_label.setAlignment(Qt.AlignCenter)
+        self._info_label.setWordWrap(True)
+        self._info_label.setStyleSheet("color: #555; font-size: 11px;")
+        layout.addWidget(self._info_label)
+
+        return widget
+
+    # ------------------------------------------------------------------ slots
+
+    def _on_choose_file(self):
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Выберите изображение",
+            "",
+            "TIFF files (*.tif *.tiff);;"
+            "Microscope files (*.nd2);;"
+            "Images (*.png *.jpg *.jpeg);;"
+            "All files (*.*)",
         )
-        tk.Checkbutton(
-            root, text="Верхний сагиттальный синус (SSS)", variable=self.flags["sss"]
-        ).pack(anchor="w", padx=40)
-        tk.Checkbutton(
-            root, text="Поперечный синус", variable=self.flags["transverse_sinus"]
-        ).pack(anchor="w", padx=40)
+        if path:
+            self._file_edit.setText(path)
+            self._update_preview(path)
 
-        tk.Label(root, text="Уточнение мозга:", font=("Arial", 10, "italic")).pack(
-            anchor="w", padx=30
-        )
-        tk.Checkbutton(root, text="Кора (cortex)", variable=self.flags["cortex"]).pack(
-            anchor="w", padx=40
-        )
-        tk.Checkbutton(
-            root, text="Таламус (thalamus)", variable=self.flags["thalamus"]
-        ).pack(anchor="w", padx=40)
-        # общий контейнер для строки
-        row_frame = tk.Frame(root)
-        row_frame.pack(pady=10)
+    def _update_preview(self, path: str):
+        suffix = Path(path).suffix.lower()
 
-        # ---------- ЛЕВАЯ КОЛОНКА: ПОЛ ----------
-        sex_frame = tk.Frame(row_frame)
-        sex_frame.pack(side=tk.LEFT, padx=20)
+        if suffix not in _PREVIEWABLE:
+            self._preview_label.setPixmap(QPixmap())
+            self._preview_label.setText(
+                f"Предпросмотр недоступен\nдля формата «{suffix}»"
+            )
+            self._info_label.setText(self._file_info(path))
+            return
 
-        tk.Label(
-            sex_frame,
-            text="Укажите пол",
-            font=("Arial", 12, "bold")
-        ).pack(anchor="w")
+        try:
+            img = PILImage.open(path)
+            img.seek(0)  # first frame for multi-page TIFFs
+            img = img.convert("RGB")
 
-        sexes = ["male", "female"]
+            w, h = img.size
+            try:
+                resample = PILImage.Resampling.LANCZOS
+            except AttributeError:
+                resample = PILImage.LANCZOS  # Pillow < 10
 
-        self.sex = tk.StringVar()
-        ttk.Combobox(
-            sex_frame,
-            textvariable=self.sex,
-            values=sexes,
-            width=15,
-            state="readonly"
-        ).pack(pady=5)
+            img.thumbnail((_PREVIEW_PX, _PREVIEW_PX), resample)
 
-        # ---------- ПРАВАЯ КОЛОНКА: ВОЗРАСТ ----------
-        age_frame = tk.Frame(row_frame)
-        age_frame.pack(side=tk.LEFT, padx=20)
+            buf = io.BytesIO()
+            img.save(buf, format="PNG")
+            buf.seek(0)
 
-        tk.Label(
-            age_frame,
-            text="Укажите возраст (в неделях)",
-            font=("Arial", 12, "bold")
-        ).pack(anchor="w")
+            pixmap = QPixmap()
+            pixmap.loadFromData(buf.read())
+            self._preview_label.setPixmap(
+                pixmap.scaled(
+                    self._preview_label.width(),
+                    self._preview_label.height(),
+                    Qt.KeepAspectRatio,
+                    Qt.SmoothTransformation,
+                )
+            )
+            self._info_label.setText(
+                f"{Path(path).name}  •  {w} × {h} px\n{self._file_info(path)}"
+            )
+        except Exception as exc:
+            logger.warning("Preview failed for %s: %s", path, exc)
+            self._preview_label.setPixmap(QPixmap())
+            self._preview_label.setText(f"Ошибка предпросмотра:\n{exc}")
+            self._info_label.setText("")
 
-        self.age_weeks = tk.StringVar()
-        tk.Entry(
-            age_frame,
-            textvariable=self.age_weeks,
-            width=15
-        ).pack(pady=5)
+    @staticmethod
+    def _file_info(path: str) -> str:
+        try:
+            size_kb = Path(path).stat().st_size / 1024
+            return f"{size_kb:.1f} KB"
+        except OSError:
+            return ""
 
-        # Кнопка загрузки
-        tk.Button(
-            root,
-            text="Загрузить в систему",
-            command=self.controller.run_etl,
-            bg="#4CAF50",
-            fg="black",
-            font=("Arial", 12, "bold"),
-        ).pack(pady=20)
+    # ------------------------------------------------------------------ public API
 
-    def choose_file(self):
-        s3_path = filedialog.askopenfilename(
-            title="Выберите изображение",
-            filetypes=[
-                ("TIFF files", "*.tif *.tiff"),
-                ("Images", "*.png *.jpg *.jpeg"),
-                ("All files", "*.*"),
-                ("Microscope files", "*nd2*"),
-            ],
-        )
-        if s3_path:
-            self.file_path_var.set(s3_path)
+    def choose_file(self) -> str:
+        """Return the currently selected file path (controller compatibility)."""
+        return self._file_edit.text()
+
     def show_error(self, message: str):
-        messagebox.showerror("Ошибка", message)
+        QMessageBox.critical(self, "Ошибка", message)
 
     def show_success(self, message: str):
-        messagebox.showinfo("Успех", message)
+        QMessageBox.information(self, "Успех", message)
+
+    # ------------------------------------------------------------------ accessors
+
+    def _expose_accessors(self):
+        """Expose Tkinter-style .get()/.set() wrappers so controller.py is unchanged."""
+        self.file_path_var = _StrVar(self._file_edit)
+        self.name_var = _StrVar(self._name_edit)
+        self.genetic_line = _StrVar(self._genetic_combo)
+        self.sex = _StrVar(self._sex_combo)
+        self.age_weeks = _StrVar(self._age_edit)
+        self.flags = {
+            "meninges":             _BoolVar(self._cb_meninges),
+            "brain":                _BoolVar(self._cb_brain),
+            "sss":                  _BoolVar(self._cb_sss),
+            "confluence_of_sinuses": _BoolVar(self._cb_confluence),
+            "transverse_sinus":     _BoolVar(self._cb_transverse),
+            "cortex":               _BoolVar(self._cb_cortex),
+            "thalamus":             _BoolVar(self._cb_thalamus),
+            "hypothalamus":         _BoolVar(self._cb_hypothalamus),
+        }

@@ -6,7 +6,7 @@ def validate_and_prepare(path, experiment_dir):
     # Проверяем формат
     try:
         Image.open(path)
-    except:
+    except Exception:
         raise ValueError("Файл не является корректным изображением.")
 
     # Генерируем новое имя файла

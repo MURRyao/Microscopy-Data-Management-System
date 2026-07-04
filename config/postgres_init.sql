@@ -1,3 +1,28 @@
+CREATE DATABASE microscopy_db;
+
+\c microscopy_db
+
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    login VARCHAR(15) NOT NULL,
+    password VARCHAR(15) NOT NULL,
+    first_name VARCHAR(100),
+    last_name VARCHAR(100),
+    role VARCHAR(20),
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE devices(
+    id SERIAL PRIMARY KEY,
+    device_name VARCHAR(50)
+);
+
+INSERT INTO users(login, password, first_name, last_name, role) VALUES
+('admin', 'admin', 'admin', 'admin', 'admin'); 
+
+INSERT INTO devices(device_name) VALUES
+('Nikon');
+
 CREATE TABLE mice (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id),
@@ -8,36 +33,27 @@ CREATE TABLE mice (
     created_by INTEGER,
     created_at TIMESTAMP DEFAULT NOW()
 );
-CREATE TABLE devices(
-    id SERIAL PRIMARY KEY,
-    device_name VARCHAR(50)
-);
-CREATE TABLE users (
-    id SERIAL PRIMARY KEY,
-    login VARCHAR(15) NOT NULL,
-    password VARCHAR(15) NOT NULL,
-    first_name VARCHAR(100),
-    last_name VARCHAR(100),
-    role VARCHAR(20),
-    created_at TIMESTAMP DEFAULT NOW()
-);
+
 CREATE TABLE experiments (
     id SERIAL PRIMARY KEY,
     name VARCHAR(200),
     description TEXT,
     date TIMESTAMP DEFAULT NOW()
 );
+
 CREATE TABLE mice_experiments (
     mouse_id INTEGER REFERENCES mice(id),
     experiment_id INTEGER REFERENCES experiments(id),
     PRIMARY KEY (mouse_id, experiment_id)
 );
+
 CREATE TABLE structures (
     id SERIAL PRIMARY KEY,
     mouse_id INTEGER REFERENCES mice(id),
     meninges BOOLEAN DEFAULT FALSE,
     brain BOOLEAN DEFAULT FALSE
 );
+
 CREATE TABLE structures_meninges (
     id SERIAL PRIMARY KEY,
     structures_id INTEGER REFERENCES structures(id),
@@ -45,6 +61,7 @@ CREATE TABLE structures_meninges (
     confluence_of_sinuses BOOLEAN DEFAULT FALSE,
     transverse_sinus BOOLEAN DEFAULT FALSE
 );
+
 CREATE TABLE structures_brain (
     id SERIAL PRIMARY KEY,
     structures_id INTEGER REFERENCES structures(id),
@@ -52,6 +69,7 @@ CREATE TABLE structures_brain (
     thalamus BOOLEAN DEFAULT FALSE,
     hypothalamus BOOLEAN DEFAULT FALSE
 );
+
 CREATE TABLE ihc (
     id SERIAL PRIMARY KEY,
     structures_brain_id INTEGER REFERENCES structures_brain(id),
@@ -60,6 +78,7 @@ CREATE TABLE ihc (
     lyve1 BOOLEAN DEFAULT FALSE,
     cd68 BOOLEAN DEFAULT FALSE
 );
+
 CREATE TABLE images (
     id SERIAL PRIMARY KEY,
     mouse_id INTEGER REFERENCES mice(id),
@@ -71,3 +90,17 @@ CREATE TABLE images (
     channels INTEGER,
     uploaded_at TIMESTAMP DEFAULT NOW()
 );
+
+-- Indexes on foreign keys (PostgreSQL does not create these automatically)
+CREATE INDEX ON mice(user_id);
+CREATE INDEX ON mice(device_id);
+CREATE INDEX ON mice_experiments(experiment_id);
+CREATE INDEX ON structures(mouse_id);
+CREATE INDEX ON structures_meninges(structures_id);
+CREATE INDEX ON structures_brain(structures_id);
+CREATE INDEX ON ihc(structures_brain_id);
+CREATE INDEX ON images(mouse_id);
+CREATE INDEX ON images(experiment_id);
+CREATE INDEX ON images(structure_id);
+CREATE INDEX ON images(ihc_id);
+CREATE INDEX ON images(s3_path);

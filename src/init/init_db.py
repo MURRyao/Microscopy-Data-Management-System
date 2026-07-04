@@ -1,37 +1,46 @@
 import psycopg
 import os
-from psycopg import sql
 
-# Параметры подключения
-DB_HOST = "localhost"        
+DB_HOST = "localhost"
 DB_NAME = "microscopy_db"
 DB_USER = "microscopy"
 DB_PASSWORD = "microscopy"
-DB_PORT = 5432              
+DB_PORT = 5432
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+SQL_FILE = os.path.abspath(os.path.join(BASE_DIR, "..", "..", "config", "postgres_init.sql"))
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # /src/init
-SQL_FILE = os.path.join(BASE_DIR, "..", "..", "config", "postgres_init.sql")
-SQL_FILE = os.path.abspath(SQL_FILE)  
-
-# Читаем SQL файл
 with open(SQL_FILE, "r") as f:
-    sql = f.read()
+    raw_sql = f.read()
 
-# Подключение к Postgres
-conn = psycopg.connect(
+# Filter out psql metacommands (\c) and CREATE DATABASE — those are handled separately.
+schema_lines = [
+    line for line in raw_sql.splitlines()
+    if not line.strip().startswith("\\")
+    and not line.strip().upper().startswith("CREATE DATABASE")
+]
+schema_sql = "\n".join(schema_lines)
+
+# Step 1: Create the database.
+# CREATE DATABASE is DDL that cannot run inside a transaction, so autocommit is required.
+with psycopg.connect(
     host=DB_HOST,
-    database=DB_NAME,
+    dbname="postgres",
     user=DB_USER,
     password=DB_PASSWORD,
-    port=DB_PORT
-)
+    port=DB_PORT,
+    autocommit=True,
+) as conn:
+    with conn.cursor() as cur:
+        cur.execute(f"CREATE DATABASE {DB_NAME}")
 
-try:
-    with conn:
-        with conn.cursor() as cur:
-            cur.execute("BEGIN;")
-            cur.execute(sql.SQL(sql))  # исполняем весь файл
-            cur.execute("COMMIT;")
-finally:
-    conn.close()
+# Step 2: Apply the schema to the new database.
+with psycopg.connect(
+    host=DB_HOST,
+    dbname=DB_NAME,
+    user=DB_USER,
+    password=DB_PASSWORD,
+    port=DB_PORT,
+) as conn:
+    with conn.cursor() as cur:
+        cur.execute(schema_sql)

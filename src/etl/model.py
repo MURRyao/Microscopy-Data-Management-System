@@ -1,35 +1,27 @@
-from pathlib import Path
+import logging
 from extract import extract_image
-from load import load_to_minio, insert_metadata
-import tkinter as tk
-from tkinter import messagebox
+from load import load_to_minio, insert_metadata, remove_from_minio
+
+logger = logging.getLogger(__name__)
+
+_CONN_STRING = "dbname=microscopy_db user=microscopy password=microscopy host=localhost"
 
 
-class ETlModel:
-    def run_etl(self, s3_path: str, metadata: dict):
+class ETLModel:
+    def run_etl(self, s3_path: str, metadata: dict) -> None:
+        s3_path = s3_path.strip()
+        if not s3_path:
+            raise ValueError("Выберите файл!")
+
+        local_path = extract_image(s3_path)
+        logger.debug("local_path: %s", local_path)
+
+        s3_object_path = load_to_minio(local_path)
+        logger.debug("s3_object_path: %s", s3_object_path)
+
         try:
-            s3_path = s3_path.strip()
-
-            if not s3_path:
-                messagebox.showerror("Ошибка", "Выберите файл!")
-                return
-
-            # Extract
-            local_path = extract_image(s3_path)  # возвращает локальный путь
-            print("DEBUG local_path:", local_path)
-
-            # Load
-            s3_object_path = load_to_minio(local_path)
-            print("DEBUG s3_object_path:", s3_object_path)
-
-            # Insert metadata в БД
-            insert_metadata(
-                "dbname=microscopy_db user=microscopy password=microscopy host=localhost",
-                metadata,
-                s3_object_path,  # путь к файлу в S3
-            )
-
-            messagebox.showinfo("Успех", "Файл и метаданные успешно загружены!")
-
-        except Exception as e:
-            messagebox.showerror("Ошибка", str(e))
+            insert_metadata(_CONN_STRING, metadata, s3_object_path)
+        except Exception:
+            # DB insert failed — remove the already-uploaded file to avoid orphaned objects
+            remove_from_minio(s3_object_path)
+            raise
